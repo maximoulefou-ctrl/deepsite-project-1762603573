@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chesstalk - Communauté d'échecs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f5f5f5;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .chess-pattern {
+            background-image: 
+                linear-gradient(45deg, #d1e7dd 25%, transparent 25%),
+                linear-gradient(-45deg, #d1e7dd 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #d1e7dd 75%),
+                linear-gradient(-45deg, transparent 75%, #d1e7dd 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+        
+        .message-bubble {
+            position: relative;
+            border-radius: 1rem;
+            padding: 0.75rem;
+            max-width: 80%;
+        }
+        
+        .message-bubble:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            width: 0;
+            height: 0;
+            border: 10px solid transparent;
+        }
+        
+        .user-message {
+            background-color: #2e8b57;
+            color: white;
+            align-self: flex-end;
+        }
+        
+        .user-message:after {
+            right: -10px;
+            border-left-color: #2e8b57;
+            border-right: 0;
+        }
+        
+        .other-message {
+            background-color: #e5e7eb;
+            color: #111827;
+            align-self: flex-start;
+        }
+        
+        .other-message:after {
+            left: -10px;
+            border-right-color: #e5e7eb;
+            border-left: 0;
+        }
+        
+        .group-message {
+            background-color: #d1e7dd;
+            color: #111827;
+            align-self: flex-start;
+        }
+        
+        .group-message:after {
+            left: -10px;
+            border-right-color: #d1e7dd;
+            border-left: 0;
+        }
+        
+        .nav-tab-active {
+            color: #2e8b57;
+            border-bottom: 3px solid #2e8b57;
+        }
+        
+        .piece-selector {
+            transition: all 0.2s ease;
+        }
+        
+        .piece-selector:hover {
+            transform: scale(1.1);
+        }
+        
+        .challenge-card {
+            transition: all 0.3s ease;
+        }
+        
+        .challenge-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* Overlay animations */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            z-index: 30;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .overlay.active {
+            transform: translateX(0);
+        }
+        
+        /* Admin overlay */
+        .admin-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 40;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .admin-overlay.active {
+            display: flex;
+        }
+        
+        .admin-content {
+            background: white;
+            width: 90%;
+            max-width: 400px;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        
+        /* Challenge overlay */
+        .challenge-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            z-index: 30;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+        
+        .challenge-overlay.active {
+            transform: translateX(0);
+        }
+        
+        /* Tab content */
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Notification badge */
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 16px;
+            height: 16px;
+            background-color: #ef4444;
+            color: white;
+            border-radius: 50%;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Message options */
+        .message-options {
+            position: absolute;
+            right: 0;
+            top: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 10;
+            display: none;
+        }
+        
+        .message-container:hover .message-options {
+            display: block;
+        }
+        
+        /* Create group overlay */
+        .create-group-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            z-index: 50;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .create-group-overlay.active {
+            transform: translateX(0);
+        }
+        
+        /* Challenge modal */
+        .challenge-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 60;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .challenge-modal.active {
+            display: flex;
+        }
+        
+        /* Pin code input */
+        .pin-input {
+            width: 40px;
+            height: 40px;
+            text-align: center;
+            font-size: 18px;
+            margin: 0 5px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        
+        .pin-input:focus {
+            border-color: #2e8b57;
+            outline: none;
+        }
+    </style>
+</head>
+<body class="max-w-md mx-auto bg-white min-h-screen relative overflow-x-hidden">
+    <!-- Header with logo and navigation -->
+    <header class="sticky top-0 z-10 bg-white shadow-sm">
+        <div class="flex items-center justify-between p-4">
+            <div class="flex items-center">
+                <div class="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center mr-2">
+                    <i class="fas fa-chess-knight text-white text-xl"></i>
+                </div>
+                <h1 class="text-xl font-bold text-gray-800">Chesstalk</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button class="text-gray-600 relative" id="adminBtn">
+                    <i class="fas fa-lock text-lg"></i>
+                </button>
+                <button class="text-gray-600 relative" id="notifBtn">
+                    <i class="fas fa-bell text-lg"></i>
+                    <span class="notification-badge">3</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Navigation tabs -->
+        <div class="flex border-b">
+            <button class="flex-1 py-3 text-center font-medium nav-tab chat-tab active" data-tab="chats">
+                <i class="fas fa-comments mr-1"></i> Chats
+            </button>
+            <button class="flex-1 py-3 text-center font-medium text-gray-500 group-tab" data-tab="groups">
+                <i class="fas fa-users mr-1"></i> Groupes
+            </button>
+            <button class="flex-1 py-3 text-center font-medium text-gray-500 challenge-tab" data-tab="challenges">
+                <i class="fas fa-chess mr-1"></i> Défis
+            </button>
+            <button class="flex-1 py-3 text-center font-medium text-gray-500 profile-tab" data-tab="profile">
+                <i class="fas fa-user mr-1"></i> Profil
+            </button>
+        </div>
+    </header>
+
+    <main class="pb-20">
+        <!-- Chats tab content -->
+        <div class="tab-content active" id="chats-tab">
+            <!-- Featured challenge -->
+            <div class="mx-4 mt-4 mb-6 p-4 bg-gradient-to-r from-green-500 to-green-600 rounded-xl text-white shadow-lg">
+                <h3 class="font-bold text-lg mb-1">Défi Quotidien!</h3>
+                <p class="text-sm mb-3">Résolvez ce puzzle et gagnez 50 points</p>
+                <div class="w-full h-40 bg-white rounded-lg chess-pattern flex items-center justify-center">
+                    <div class="relative">
+                        <div class="absolute -top-2 -left-2 w-5 h-5 bg-green-500 rounded-full"></div>
+                        <i class="fas fa-chess-queen text-4xl text-gray-800"></i>
+                    </div>
+                </div>
+                <button class="mt-3 w-full py-2 bg-white text-green-600 font-medium rounded-lg try-challenge-btn">
+                    Essayer
+                </button>
+            </div>
+            
+            <!-- Active chats section -->
+            <div class="px-4">
+                <h2 class="font-bold text-gray-700 mb-3">Conversations Actives</h2>
+                
+                <div class="space-y-3">
+                    <!-- Chat item 1 -->
+                    <div class="flex items-center p-3 bg-gray-50 rounded-lg active:bg-gray-100 transition chat-item" data-chat="RoiDesEchecs">
+                        <div class="relative">
+                            <div class="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
+                                <i class="fas fa-chess-king text-amber-600 text-xl"></i>
+                            </div>
+                            <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                        </div>
+                        <div class="ml-3 flex-1">
+                            <div class="flex justify-between items-center">
+                                <h3 class="font-medium">RoiDesEchecs</h3>
+                                <span class="text-xs text-gray-500">2 min</span>
+                            </div>
+                            <p class="text-sm text-gray-500 truncate">Regarde ce mat en 3 coups!</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Chat item 2 -->
+                    <div class="flex items-center p-3 bg-gray-50 rounded-lg active:bg-gray-100 transition chat-item" data-chat="DameBlanche">
+                        <div class="relative">
+                            <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                                <i class="fas fa-chess-queen text-purple-600 text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="ml-3 flex-1">
+                            <div class="flex justify-between items-center">
+                                <h3 class="font-medium">DameBlanche</h3>
+                                <span class="text-xs text-gray-500">15 min</span>
+                            </div>
+                            <p class="text-sm text-gray-500 truncate">Prêt pour notre revanche?</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Public groups section -->
+            <div class="px-4 mt-6">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="font-bold text-gray-700">Groupes Publics</h2>
+                    <button class="text-green-600 text-sm font-medium">Voir tout</button>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <!-- Group 1 -->
+                    <div class="p-3 bg-gray-50 rounded-lg active:bg-gray-100 transition group-item" data-group="Les Tacticiens">
+                        <div class="w-full h-20 mb-2 bg-red-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-chess-rook text-red-600 text-3xl"></i>
+                        </div>
+                        <h3 class="font-medium text-sm">Les Tacticiens</h3>
+                        <p class="text-xs text-gray-500">1.2k membres</p>
+                    </div>
+                    
+                    <!-- Group 2 -->
+                    <div class="p-3 bg-gray-50 rounded-lg active:bg-gray-100 transition group-item" data-group="Les Finisseurs">
+                        <div class="w-full h-20 mb-2 bg-green-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-chess-bishop text-green-600 text-3xl"></i>
+                        </div>
+                        <h3 class="font-medium text-sm">Les Finisseurs</h3>
+                        <p class="text-xs text-gray-500">856 membres</p>
+                    </div>
+                    
+                    <!-- Group 3 -->
+                    <div class="p-3 bg-gray-50 rounded-lg active:bg-gray-100 transition group-item" data-group="Les Ouverturiers">
+                        <div class="w-full h-20 mb-2 bg-yellow-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-chess-knight text-yellow-600 text-3xl"></i>
+                        </div>
+                        <h3 class="font-medium text-sm">Les Ouverturiers</h3>
+                        <p class="text-xs text-gray-500">2.4k membres</p>
+                    </div>
+                    
+                    <!-- Group 4 -->
+                    <div class="p-3 bg-gray-50 rounded-lg active:bg-gray-100 transition group-item" data-group="Causerie Échiquéenne">
+                        <div class="w-full h-20 mb-2 bg-indigo-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-chess text-indigo-600 text-3xl"></i>
+                        </div>
+                        <h3 class="font-medium text-sm">Causerie Échiquéenne</h3>
+                        <p class="text-xs text-gray-500">3.1k membres</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Groups tab content -->
+        <div class="tab-content" id="groups-tab">
+            <div class="px-4 mt-4">
+                <h2 class="font-bold text-gray-700 mb-3">Vos Groupes</h2>
+                
+                <div class="space-y-3">
+                    <!-- Group item 1 -->
+                    <div class="flex items-center p-3 bg-gray-50 rounded-lg active:bg-gray-100 transition group-item" data-group="Les Tacticiens">
+                        <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                            <i class="fas fa-users text-green-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-medium">Les Tacticiens</h3>
+                            <p class="text-xs text-gray-500">Dernier message: Il y a 2h</p>
+                        </div>
+                        <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                    </div>
+                    
+                    <!-- Group item 2 -->
+                    <div class="flex items-center p-3 bg-gray-50 rounded-lg active:bg-gray-100 transition group-item" data-group="Causerie Échiquéenne">
+                        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                            <i class="fas fa-users text-blue-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-medium">Causerie Échiquéenne</h3>
+                            <p class="text-xs text-gray-500">Dernier message: Il y a 1j</p>
+                        </div>
+                    </div>
+                </div>
+</body>
+</html>
